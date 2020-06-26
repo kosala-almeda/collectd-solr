@@ -415,9 +415,8 @@ def parse_corename(collection, shard, core_val):
 def dispatch_collection_stats(data, default_dimensions, solr_cloud, collection):
     plugin_instance = data["member_id"]
     metric_name = "solr.collection_active_replicas"
-    for shard in solr_cloud[collection]:
-        active_replicas = sum(sum(r['state'] == "active" for r in s.values()) for s in solr_cloud[collection].values())
-        dimensions = prepare_dimensions(default_dimensions, core, solr_cloud, collection, shard)
+    active_replicas = sum(sum(r['state'] == "active" for r in s.values()) for s in solr_cloud[collection].values())
+    dimensions = prepare_dimensions(default_dimensions, core, solr_cloud, collection)
     dispatch_value(plugin_instance, metric_name, active_replicas, "gauge", dimensions)
 
 
