@@ -199,9 +199,7 @@ def read_metrics(data):
     collectd.debug("{0} - STARTED FETCHING METRICS".format(data["member_id"]))
     if data["member_id"] + "_solr" == get_leader_node(data):
         for collection in solr_cloud:
-            response = get_shards_info(data, collection) if collection != "live_nodes" else None
-            if response is not None:
-                dispatch_collection_stats(data, response, default_dimensions, solr_cloud, collection)
+            dispatch_collection_stats(data, default_dimensions, solr_cloud, collection)
 
     response = fetch_solr_stats(data)
     if response is None:
@@ -307,12 +305,6 @@ def fetch_solr_stats(data):
     return _api_call(url, data["opener"])
 
 
-def get_shards_info(data, collection):
-    url = "{0}/{1}/select?q=*:*&shards.info=true&wt=json".format(data["base_url"], collection)
-
-    return _api_call(url, data["opener"])
-
-
 def get_leader_node(data):
     url = "{0}/admin/collections?action=OVERSEERSTATUS&wt=json".format(data["base_url"])
     response = _api_call(url, data["opener"])
@@ -350,6 +342,7 @@ def fetch_collections_info(data):
                     #     collectd.debug('{0} - Solr running in solr_cloud mode'.format(data['member_id']))
                     solr_cloud[collection][shard][core]["node"] = coreNode["node_name"]
                     solr_cloud[collection][shard][core]["base_url"] = coreNode["base_url"]
+                    solr_cloud[collection][shard][core]["state"] = coreNode["state"]
                     if "leader" in coreNode:
                         solr_cloud[collection][shard][core]["leader"] = coreNode["leader"]
                     else:
@@ -420,15 +413,6 @@ def dispatch_additional_metrics(data, solr_metrics, default_dimensions):
     return dpm_count
 
 
-def parse_shard_info(shards_info, shard):
-    shard += "_"
-    for key in shards_info["shards.info"]:
-        if shard in key:
-            num_doc = shards_info["shards.info"][key]["numFound"]
-            core = shards_info["shards.info"][key]["shardAddress"].split("/")[4]
-            return num_doc, core
-
-
 def parse_corename(collection, shard, core_val):
     replica = core_val.split("_")[-1]
     core = "{0}.{1}.replica_{2}".format(collection, shard, replica)
@@ -436,13 +420,13 @@ def parse_corename(collection, shard, core_val):
     return core
 
 
-def dispatch_collection_stats(data, shards_info, default_dimensions, solr_cloud, collection):
+def dispatch_collection_stats(data, default_dimensions, solr_cloud, collection):
     plugin_instance = data["member_id"]
-    metric_name = "solr.shard_cumulative_docs"
+    metric_name = "solr.collection_active_replicas"
     for shard in solr_cloud[collection]:
-        num_doc, core = parse_shard_info(shards_info, shard)
+        active_replicas = sum(sum(r['state'] == "active" for r in s.values()) for s in solr_cloud[collection].values())
         dimensions = prepare_dimensions(default_dimensions, core, solr_cloud, collection, shard)
-        dispatch_value(plugin_instance, metric_name, num_doc, "gauge", dimensions)
+    dispatch_value(plugin_instance, metric_name, active_replicas, "gauge", dimensions)
 
 
 def dispatch_core_stats(data, solr_metrics, default_dimensions, solr_cloud):
