@@ -237,6 +237,9 @@ def dispatch_value(instance, key, value, value_type, dimensions=None):
     val.type_instance = key
     val.values = [value]
     val.meta = {"0": True}
+
+    collectd.error("SOLR dispatch ({0})".format(val))
+
     val.dispatch()
 
 
