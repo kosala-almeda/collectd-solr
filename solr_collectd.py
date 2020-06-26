@@ -231,11 +231,7 @@ def str_to_bool(flag):
 def dispatch_value(instance, key, value, value_type, dimensions=None):
     """Dispatch a value to collectd"""
     val = collectd.Values(plugin=PLUGIN_NAME)
-    val.plugin_instance = instance
-
-    dim_str = get_dimension_string(dimensions)
-    if dim_str:
-        val.plugin_instance += "[{dims}]".format(dims=dim_str)
+    val.plugin_instance = get_dimension_string(dimensions)
 
     val.type = value_type
     val.type_instance = key
@@ -245,11 +241,7 @@ def dispatch_value(instance, key, value, value_type, dimensions=None):
 
 
 def get_dimension_string(dimensions):
-    dim_str = ""
-    if dimensions:
-        dim_str = ",".join(["=".join(d) for d in dimensions.items()])
-
-    return dim_str
+    return dimensions["collection"] or dimensions["core"] or dimensions["shard"] or dimensions["leader"] or dimensions["node"]
 
 
 def prepare_dimensions(default_dimensions, core=None, solr_cloud=None, collection=None, shard=None):
