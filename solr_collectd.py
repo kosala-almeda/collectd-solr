@@ -308,7 +308,7 @@ def fetch_solr_stats(data):
 
 
 def get_shards_info(data, collection):
-    url = "{0}/{1}/select?q=*:*&shards.info=true&wt=json".format(data["base_url"], collection)
+#    url = "{0}/{1}/select?q=*:*&shards.info=true&wt=json".format(data["base_url"], collection)
 
     return _api_call(url, data["opener"])
 
